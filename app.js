@@ -1,14 +1,94 @@
+const env = process.env.NODE_ENV;
+const handleBlogRouter = require("./src/router/blog");
+const handleUserRouter = require("./src/router/user");
+const querystring = require("querystring");
+const { getPostData } = require("./src/util");
+const { getCookieExpires } = require("./src/util");
+
+const SESSION_DATA = {};
+
 const serverHanlder = (req, res) => {
   // 设置返回格式
   res.setHeader("Content-type", "application/json");
 
-  const resData = {
-    name: "曾超",
-    age: 26,
-    env: process.env.NODE_ENV
-  };
+  // 获取query
+  const url = req.url;
+  const query = url.split("?")[1];
 
-  res.end(JSON.stringify(resData));
+  // 解析path
+  req.path = url.split("?")[0];
+
+  // 解析query
+  req.query = querystring.parse(query);
+
+  // 解析cookie
+  req.cookie = {};
+  const cookieStr = req.headers.cookie || "";
+  cookieStr.split(";").forEach((item) => {
+    if (!item) return;
+    const [k, v] = item.split("=");
+    req.cookie[k.trim()] = v.trim();
+  });
+
+  // 解析session
+  let userId = req.cookie.userid;
+  let needSetCookie = false;
+
+  // 设置SESSION_DATA
+  if (userId) {
+    if (!SESSION_DATA[userId]) {
+      SESSION_DATA[userId] = {};
+    }
+  } else {
+    needSetCookie = true;
+    userId = `${Date.now()}_${Math.random()}`;
+    SESSION_DATA[userId] = {};
+  }
+
+  req.session = SESSION_DATA[userId];
+  console.log(SESSION_DATA)
+  // 处理请求
+  getPostData(req).then((postData) => {
+    req.body = postData;
+
+    const blogResult = handleBlogRouter(req, res);
+    if (blogResult) {
+      // 是否要设置登录cookie
+      if (needSetCookie) {
+        res.setHeader(
+          "Set-Cookie",
+          `userid=${userId}; path=/; httpOnly; expires=${getCookieExpires()}`
+        );
+      }
+
+      blogResult.then((blogData) => {
+        res.end(JSON.stringify(blogData));
+      });
+
+      return;
+    }
+
+    const userResult = handleUserRouter(req, res);
+
+    if (userResult) {
+      // 是否要设置登录cookie
+      if (needSetCookie) {
+        res.setHeader(
+          "Set-Cookie",
+          `userid=${userId}; path=/; httpOnly; expires=${getCookieExpires()}`
+        );
+      }
+
+      userResult.then((userData) => {
+        res.end(JSON.stringify(userData));
+      });
+      return;
+    }
+
+    res.writeHead(404, { "Content-type": "rext/plain" });
+    res.write("404 nor found\n");
+    res.end("404 nor found\n");
+  });
 };
 
 module.exports = serverHanlder;
