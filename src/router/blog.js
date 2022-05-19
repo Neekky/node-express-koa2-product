@@ -6,6 +6,7 @@ const {
   delBlog,
 } = require("../controller/blog");
 const { SuccessModel, ErrorModel } = require("../model/resModel");
+const { loginCheck } = require("../util");
 
 const handleBlogRouter = (req, res) => {
   const method = req.method;
@@ -40,6 +41,11 @@ const handleBlogRouter = (req, res) => {
   }
 
   if (method === "POST" && path === "/api/blog/new") {
+    // 登录校验
+    const loginCheckRes = loginCheck(req);
+    if (loginCheckRes) return loginCheckRes;
+
+    req.body.author = req.session.username;
     return newBlog(req.body)
       .then((newBlogData) => {
         if (!newBlogData.error) {
@@ -53,6 +59,9 @@ const handleBlogRouter = (req, res) => {
   }
 
   if (method === "POST" && path === "/api/blog/update") {
+    // 登录校验
+    const loginCheckRes = loginCheck(req);
+    if (loginCheckRes) return loginCheckRes;
     return updateBlog({ ...req.body, ...req.query })
       .then((updateBlogData) => {
         if (!updateBlogData?.error) {
@@ -68,7 +77,12 @@ const handleBlogRouter = (req, res) => {
   }
 
   if (method === "POST" && path === "/api/blog/del") {
-    const author = "曾超";
+    // 登录校验
+    const loginCheckRes = loginCheck(req);
+    if (loginCheckRes) return loginCheckRes;
+
+    const author = req.session.username;
+
     return delBlog(id, author)
       .then((delBlogData) => {
         if (!delBlogData?.error) {
