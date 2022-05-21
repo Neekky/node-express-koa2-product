@@ -15,6 +15,16 @@ const handleBlogRouter = (req, res) => {
   const { id } = req.query;
 
   if (method === "GET" && path === "/api/blog/list") {
+    if(req.query.isadmin) {
+      const loginCheckRes = loginCheck(req);
+      if(loginCheckRes){
+        // 未登录
+        return loginCheckRes;
+      }
+      // 强制查自己的博客
+      req.query.author = req.session.username;
+    }
+
     return getList(req.query)
       .then((listData) => {
         if (!listData.error) {
