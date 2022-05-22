@@ -2,13 +2,15 @@ const env = process.env.NODE_ENV;
 const handleBlogRouter = require("./src/router/blog");
 const handleUserRouter = require("./src/router/user");
 const querystring = require("querystring");
-const { getPostData } = require("./src/util");
-const { getCookieExpires } = require("./src/util");
+const { getPostData, getCookieExpires, access } = require("./src/util");
 const { get, set } = require("./src/db/redis");
 
 // const SESSION_DATA = {};
 
 const serverHanlder = (req, res) => {
+  // 日志记录
+  access(`${req.method} -- ${req.url} -- ${req.headers["user-agent"]} -- ${Date.now()}`)
+
   // 设置返回格式
   res.setHeader("Content-type", "application/json");
 
@@ -30,24 +32,6 @@ const serverHanlder = (req, res) => {
     const [k, v] = item.split("=");
     req.cookie[k.trim()] = v.trim();
   });
-
-  // 解析session
-  // let userId = req.cookie.userid;
-  // let needSetCookie = false;
-
-  // // 设置SESSION_DATA
-  // if (userId) {
-  //   if (!SESSION_DATA[userId]) {
-  //     SESSION_DATA[userId] = {};
-  //   }
-  // } else {
-  //   needSetCookie = true;
-  //   userId = `${Date.now()}_${Math.random()}`;
-  //   SESSION_DATA[userId] = {};
-  // }
-
-  // req.session = SESSION_DATA[userId];
-  // console.log(SESSION_DATA)
 
   // 解析session 使用redis
   let needSetCookie = false;
