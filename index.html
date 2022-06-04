@@ -70,7 +70,7 @@
       if (urlParams.author) {
         url += "?author=" + urlParams.author;
       }
-
+      get("/api/user/session-test")
       // 加载数据
       get(url).then((res) => {
         if (res.errno !== 0) {
